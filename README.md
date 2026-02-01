@@ -15,7 +15,7 @@ Merry Kids International Montessori School
 - Server: WAMP
 
 ## Team – Code Crafters
-- Project Leader: W.S.P.W De Silva
+
 - Student Progress Tracking: W.S.P.W De Silva
 - Feedback & Inquiries: H.M.K Nimsara
 - Interactive Sessions: V. Akshethaa
