@@ -8,11 +8,7 @@ through a centralized digital platform.
 ## Client
 Merry Kids International Montessori School
 
-## Tech Stack
-- Frontend: HTML, CSS, JavaScript
-- Backend: PHP
-- Database: MySQL
-- Server: WAMP
+
 
 ## Team – Code Crafters
 
