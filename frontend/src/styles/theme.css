@@ -1,0 +1,31 @@
+:root {
+  /* Navbar gradient */
+  --nav-start: #4facfe;
+  --nav-end: #ff7eb3;
+
+  /* Highlights */
+  --active-pink: #ff4fa3;
+
+  /* Text */
+  --white: #ffffff;
+  --dark-1: #111111;
+  --dark-2: #222222;
+  --dark-3: #444444;
+  --mid-grey: #555555;
+  --light-grey: #aaaaaa;
+
+  /* Backgrounds */
+  --bg-soft: #f4f9ff;
+  --map-bg: #f8f9fa;
+
+  /* Overlay */
+  --hero-overlay: rgba(0,0,0,0.45);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg-soft);
+  color: var(--dark-3);
+}

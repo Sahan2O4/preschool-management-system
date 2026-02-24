@@ -1,0 +1,286 @@
+/* ============================= */
+/* PAGE LAYOUT */
+/* ============================= */
+
+.financial-page {
+  padding: 30px 20px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ============================= */
+/* HEADER */
+/* ============================= */
+
+.financial-header h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--active-pink);
+}
+
+.financial-header p {
+  margin-top: 8px;
+  color: var(--dark-3);
+  font-size: 15px;
+}
+
+/* ============================= */
+/* SUMMARY CARDS */
+/* ============================= */
+
+.summary-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.summary-card {
+  background: var(--white);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  transition: 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+}
+
+.summary-card h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--dark-3);
+  font-weight: 600;
+}
+
+.big {
+  margin-top: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--dark-2);
+}
+
+.summary-card.highlight {
+  border: 2px solid var(--active-pink);
+}
+
+.summary-card.negative {
+  border: 2px solid #ff4fa3;
+  box-shadow: 0 8px 25px rgba(255, 79, 163, 0.15);
+}
+
+/* ============================= */
+/* MAIN GRID */
+/* ============================= */
+
+.grid-2 {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 20px;
+}
+
+/* ============================= */
+/* PANELS */
+/* ============================= */
+
+.panel {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.panel h2 {
+  margin: 0 0 15px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dark-2);
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.small-muted {
+  font-size: 12px;
+  color: var(--mid-grey);
+  margin: 0;
+}
+
+/* ============================= */
+/* FORM */
+/* ============================= */
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--mid-grey);
+  font-weight: 500;
+}
+
+input,
+select {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #e8e8e8;
+  outline: none;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+input:focus,
+select:focus {
+  border: 1px solid var(--active-pink);
+  box-shadow: 0 0 0 2px rgba(255, 79, 163, 0.15);
+}
+
+.primary-btn {
+  margin-top: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  background: var(--active-pink);
+  color: var(--white);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.secondary-btn {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #eee;
+  background: var(--white);
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: #f9f9f9;
+}
+
+/* ============================= */
+/* TABLE */
+/* ============================= */
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 10px;
+  font-size: 13px;
+  color: var(--dark-3);
+  border-bottom: 1px solid #eee;
+}
+
+.table td {
+  padding: 14px 10px;
+  font-size: 14px;
+  color: var(--dark-2);
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.table tr:hover {
+  background: #fafafa;
+}
+
+/* ============================= */
+/* TYPE PILLS */
+/* ============================= */
+
+.pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.pill.income {
+  background: #e7f7ff;
+  color: #0077b6;
+}
+
+.pill.expense {
+  background: #ffe7ef;
+  color: #c2185b;
+}
+
+.pill.salary {
+  background: #f2ecff;
+  color: #6a1b9a;
+}
+
+/* ============================= */
+/* DELETE BUTTON */
+/* ============================= */
+
+.danger-btn {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: none;
+  background: #ffe5e5;
+  color: #b00020;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.danger-btn:hover {
+  background: #ffd6d6;
+}
+
+/* ============================= */
+/* NOTE */
+/* ============================= */
+
+.note {
+  margin-top: 15px;
+  font-size: 13px;
+  color: var(--mid-grey);
+}
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media (max-width: 1000px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
