@@ -1,0 +1,352 @@
+import React, { useState, useEffect } from "react";
+import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer";
+import { attendanceAPI, studentAPI } from "../../services/api";
+
+const today = new Date().toISOString().split("T")[0];
+
+const AttendanceManagement = () => {
+  const [students, setStudents]       = useState([]);
+  const [attendance, setAttendance]   = useState({});   // { studentMongoId: "Present"|"Absent"|"Late" }
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [pastRecords, setPastRecords]   = useState([]);
+  const [viewRecord, setViewRecord]     = useState(null);
+  const [loading, setLoading]           = useState(false);
+  const [saving, setSaving]             = useState(false);
+  const [saved, setSaved]               = useState(false);
+  const [error, setError]               = useState("");
+
+  // ── Load students on mount ─────────────────────────────────────────────
+  useEffect(() => {
+    fetchStudents();
+    fetchPastRecords();
+  }, []);
+
+  // ── When date changes, try to load existing attendance ─────────────────
+  useEffect(() => {
+    loadAttendanceForDate(selectedDate);
+  }, [selectedDate, students]);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const data = await studentAPI.getAll();
+      setStudents(data);
+      // Init all as Present by default
+      const init = {};
+      data.forEach(s => { init[s._id] = "Present"; });
+      setAttendance(init);
+    } catch (err) {
+      setError("Could not load students: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPastRecords = async () => {
+    try {
+      const data = await attendanceAPI.getAll();
+      setPastRecords(data);
+    } catch {}
+  };
+
+  const loadAttendanceForDate = async (date) => {
+    if (students.length === 0) return;
+    try {
+      const data = await attendanceAPI.getByDate(date);
+      // Map the saved records back into our state
+      const mapped = {};
+      students.forEach(s => { mapped[s._id] = "Present"; }); // default
+      data.records.forEach(r => {
+        if (r.studentId?._id || r.studentId) {
+          const sid = r.studentId?._id || r.studentId;
+          mapped[sid] = r.status;
+        }
+      });
+      setAttendance(mapped);
+    } catch {
+      // No record for this date yet — reset to all Present
+      const init = {};
+      students.forEach(s => { init[s._id] = "Present"; });
+      setAttendance(init);
+    }
+  };
+
+  const setAll = (status) => {
+    const updated = {};
+    students.forEach(s => { updated[s._id] = status; });
+    setAttendance(updated);
+  };
+
+  // ── Save attendance to MongoDB ─────────────────────────────────────────
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const records = students.map(s => ({
+        studentId: s._id,
+        status: attendance[s._id] || "Present",
+      }));
+      await attendanceAPI.save(selectedDate, records);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      fetchPastRecords(); // refresh past records list
+    } catch (err) {
+      setError("Failed to save: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Delete a past attendance record ────────────────────────────────────
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this attendance record?")) return;
+    try {
+      await attendanceAPI.delete(id);
+      fetchPastRecords();
+      setViewRecord(null);
+    } catch (err) {
+      setError("Delete failed: " + err.message);
+    }
+  };
+
+  const countByStatus = (status) =>
+    Object.values(attendance).filter(v => v === status).length;
+
+  return (
+    <div className="admin-page">
+      <Navbar currentPage="Attendance" mode="admin" />
+      <div className="admin-body">
+
+        {/* Header */}
+        <div className="page-header">
+          <div>
+            <h1>✅ Attendance Management</h1>
+            <p>Mark and review daily student attendance</p>
+          </div>
+          <input
+            type="date" className="date-picker"
+            value={selectedDate} max={today}
+            onChange={e => { setSelectedDate(e.target.value); setSaved(false); }}
+          />
+        </div>
+
+        {error  && <div className="banner error-banner">❌ {error}</div>}
+        {saved  && <div className="banner success-banner">✅ Attendance saved to database for {selectedDate}!</div>}
+
+        {loading ? (
+          <div className="loading-box">⏳ Loading students from database...</div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="att-summary">
+              <div className="sum-card green">
+                <span className="sum-num">{countByStatus("Present")}</span><span>Present</span>
+              </div>
+              <div className="sum-card red">
+                <span className="sum-num">{countByStatus("Absent")}</span><span>Absent</span>
+              </div>
+              <div className="sum-card amber">
+                <span className="sum-num">{countByStatus("Late")}</span><span>Late</span>
+              </div>
+              <div className="sum-card blue">
+                <span className="sum-num">{students.length}</span><span>Total Students</span>
+              </div>
+            </div>
+
+            {/* Bulk actions */}
+            <div className="bulk-row">
+              <span style={{ fontWeight: 600, color: "#555" }}>Mark All:</span>
+              <button className="bulk-btn green" onClick={() => setAll("Present")}>✅ Present</button>
+              <button className="bulk-btn red"   onClick={() => setAll("Absent")}>❌ Absent</button>
+              <button className="bulk-btn amber" onClick={() => setAll("Late")}>⏰ Late</button>
+            </div>
+
+            {/* Attendance table */}
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Mark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.length === 0 ? (
+                    <tr><td colSpan="4" className="no-data">No students in database yet. Add students first.</td></tr>
+                  ) : students.map(s => (
+                    <tr key={s._id}>
+                      <td><span className="id-badge">{s.studentId}</span></td>
+                      <td><strong>{s.name}</strong></td>
+                      <td>
+                        <span className={`status-pill ${
+                          attendance[s._id] === "Present" ? "active"
+                          : attendance[s._id] === "Late"  ? "late"
+                          : "inactive"}`}>
+                          {attendance[s._id] || "Present"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="att-btn-row">
+                          {["Present", "Absent", "Late"].map(opt => (
+                            <button
+                              key={opt}
+                              className={`att-opt ${attendance[s._id] === opt
+                                ? "selected-" + opt.toLowerCase() : ""}`}
+                              onClick={() =>
+                                setAttendance(prev => ({ ...prev, [s._id]: opt }))
+                              }
+                            >
+                              {opt === "Present" ? "✅" : opt === "Absent" ? "❌" : "⏰"} {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Save button */}
+            <div className="save-row">
+              <button className="submit-btn" onClick={handleSave} disabled={saving}>
+                {saving ? "⏳ Saving to database..." : `💾 Save Attendance for ${selectedDate}`}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Past Records */}
+        <div className="past-section">
+          <h2>📋 Saved Attendance Records ({pastRecords.length})</h2>
+          {pastRecords.length === 0 ? (
+            <p style={{ color: "#aaa", marginTop: "12px" }}>No records saved yet.</p>
+          ) : (
+            <div className="past-dates">
+              {pastRecords.map(rec => {
+                const dateStr = new Date(rec.date).toISOString().split("T")[0];
+                const presentCount = rec.records.filter(r => r.status === "Present").length;
+                const total = rec.records.length;
+                return (
+                  <div
+                    key={rec._id}
+                    className={`past-date-card ${viewRecord?._id === rec._id ? "active" : ""}`}
+                    onClick={() => setViewRecord(viewRecord?._id === rec._id ? null : rec)}
+                  >
+                    <p className="past-date-label">{dateStr}</p>
+                    <p className="past-date-sub">{presentCount}/{total} present</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Expanded view of a past record */}
+          {viewRecord && (
+            <div className="table-wrap" style={{ marginTop: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px 0" }}>
+                <h3 style={{ color: "#ff4fa3" }}>
+                  Record: {new Date(viewRecord.date).toISOString().split("T")[0]}
+                </h3>
+                <button className="btn-del" onClick={() => handleDelete(viewRecord._id)}>
+                  🗑 Delete This Record
+                </button>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr><th>Student ID</th><th>Name</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {viewRecord.records.map((r, i) => (
+                    <tr key={i}>
+                      <td><span className="id-badge">{r.studentId?.studentId || "—"}</span></td>
+                      <td>{r.studentId?.name || "—"}</td>
+                      <td>
+                        <span className={`status-pill ${
+                          r.status === "Present" ? "active"
+                          : r.status === "Late" ? "late" : "inactive"}`}>
+                          {r.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+      <Footer />
+
+      <style>{`
+        .admin-page { background:#f4f6f9; min-height:100vh; }
+        .admin-body { padding:40px; max-width:1200px; margin:auto; }
+        .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; flex-wrap:wrap; gap:16px; }
+        .page-header h1 { font-size:30px; color:#ff4fa3; margin-bottom:5px; }
+        .page-header p { color:#888; font-size:15px; }
+        .date-picker { padding:11px 16px; border-radius:12px; border:2px solid #eee; font-size:15px; outline:none; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; }
+        .date-picker:focus { border-color:#ff4fa3; }
+
+        .banner { padding:14px 20px; border-radius:12px; margin-bottom:20px; font-weight:600; font-size:15px; }
+        .success-banner { background:#dcfce7; border:1px solid #86efac; color:#15803d; }
+        .error-banner   { background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; }
+        .loading-box    { text-align:center; padding:60px; color:#888; font-size:18px; background:white; border-radius:16px; }
+
+        .att-summary { display:flex; gap:18px; margin-bottom:24px; flex-wrap:wrap; }
+        .sum-card { background:white; border-radius:14px; padding:20px 28px; display:flex; flex-direction:column; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.08); flex:1; min-width:110px; font-size:14px; font-weight:600; color:#666; }
+        .sum-card.green { border-top:4px solid #34d399; }
+        .sum-card.red   { border-top:4px solid #f87171; }
+        .sum-card.amber { border-top:4px solid #f59e0b; }
+        .sum-card.blue  { border-top:4px solid #4facfe; }
+        .sum-num { font-size:32px; font-weight:800; color:#333; }
+
+        .bulk-row { display:flex; gap:12px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+        .bulk-btn { padding:8px 18px; border-radius:20px; border:none; font-weight:600; font-size:13px; cursor:pointer; transition:transform 0.15s; }
+        .bulk-btn.green { background:#dcfce7; color:#15803d; }
+        .bulk-btn.red   { background:#fee2e2; color:#dc2626; }
+        .bulk-btn.amber { background:#fef9c3; color:#854d0e; }
+        .bulk-btn:hover { transform:scale(1.05); }
+
+        .table-wrap { background:white; border-radius:18px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.08); overflow-x:auto; }
+        .data-table { width:100%; border-collapse:collapse; }
+        .data-table thead { background:linear-gradient(90deg,#4facfe,#ff7eb3); }
+        .data-table th { padding:14px 16px; color:white; font-size:13px; text-align:left; }
+        .data-table td { padding:13px 16px; border-bottom:1px solid #f0f0f0; font-size:14px; color:#444; }
+        .data-table tr:last-child td { border-bottom:none; }
+        .data-table tr:hover td { background:#fdf4f9; }
+        .id-badge { background:#f0f4ff; color:#4facfe; padding:3px 10px; border-radius:8px; font-weight:700; font-size:12px; }
+        .status-pill { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+        .status-pill.active   { background:#dcfce7; color:#16a34a; }
+        .status-pill.inactive { background:#fee2e2; color:#dc2626; }
+        .status-pill.late     { background:#fef9c3; color:#854d0e; }
+        .att-btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+        .att-opt { padding:6px 14px; border-radius:20px; border:2px solid #eee; background:white; color:#666; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+        .att-opt.selected-present { background:#dcfce7; border-color:#34d399; color:#15803d; }
+        .att-opt.selected-absent  { background:#fee2e2; border-color:#f87171; color:#dc2626; }
+        .att-opt.selected-late    { background:#fef9c3; border-color:#f59e0b; color:#854d0e; }
+        .no-data { text-align:center; padding:40px; color:#aaa; font-size:16px; }
+
+        .save-row { margin:24px 0; }
+        .submit-btn { padding:14px 32px; border-radius:25px; border:none; background:linear-gradient(90deg,#4facfe,#ff7eb3); color:white; font-weight:700; cursor:pointer; font-size:15px; transition:transform 0.2s; }
+        .submit-btn:hover:not(:disabled) { transform:translateY(-2px); }
+        .submit-btn:disabled { opacity:0.7; cursor:not-allowed; }
+
+        .past-section { margin-top:40px; }
+        .past-section h2 { font-size:22px; color:#ff4fa3; margin-bottom:16px; }
+        .past-dates { display:flex; gap:14px; flex-wrap:wrap; }
+        .past-date-card { padding:14px 20px; background:white; border-radius:14px; border:2px solid #eee; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.06); min-width:130px; text-align:center; }
+        .past-date-card:hover, .past-date-card.active { border-color:#ff4fa3; box-shadow:0 4px 16px rgba(255,79,163,0.15); }
+        .past-date-label { font-weight:700; color:#333; font-size:14px; }
+        .past-date-sub   { font-size:12px; color:#888; margin-top:4px; }
+        .btn-del { padding:8px 16px; border-radius:20px; border:2px solid #f87171; background:white; color:#dc2626; font-size:13px; font-weight:600; cursor:pointer; }
+
+        @media(max-width:768px){ .admin-body{padding:20px;} }
+      `}</style>
+    </div>
+  );
+};
+
+export default AttendanceManagement;
