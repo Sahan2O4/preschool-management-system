@@ -9,10 +9,7 @@ through a centralized digital platform.
 Merry Kids International Montessori School
 
 ## Tech Stack
-- Frontend: HTML, CSS, JavaScript
-- Backend: PHP
-- Database: MySQL
-- Server: WAMP
+MERN
 
 ## Team – Code Crafters
 - Project Leader: W.S.P.W De Silva
@@ -23,10 +20,7 @@ Merry Kids International Montessori School
 - Event Handling: D.P.O Jayasundara
 - Financial Management: N.R Silva
 
-## Repository Rules
-- All development must be done in feature branches
-- No direct commits to `main`
-- Pull Requests must be created to merge into `develop`
+
 - Commit messages must be clear and meaningful
 - Each member works only inside their assigned module folder
 
