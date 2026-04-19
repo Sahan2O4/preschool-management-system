@@ -72,27 +72,7 @@ const Login = () => {
       </section>
 
       <section className="auth-section">
-        {/* Demo hint */}
-        <div className="demo-panel">
-          <h3>🔑 Demo Credentials</h3>
-          <div className="demo-list">
-            <div className="demo-item">
-              <span className="demo-role admin-role">Admin</span>
-              <div>
-                <p><strong>admin@merrykids.lk</strong></p>
-                <p className="demo-pass">admin123</p>
-              </div>
-            </div>
-            <div className="demo-item">
-              <span className="demo-role parent-role">Parent</span>
-              <div>
-                <p><strong>kumari@email.com</strong></p>
-                <p className="demo-pass">parent123</p>
-              </div>
-            </div>
-          </div>
-          <p className="demo-note">Or register a new account using the Register tab.</p>
-        </div>
+        
 
         {/* Card */}
         <div className="auth-card">

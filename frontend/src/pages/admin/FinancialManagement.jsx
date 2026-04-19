@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import PrintButton from "../../components/PrintButton";
 import { financialAPI } from "../../services/api";
 
 const incomeCategories  = ["Tuition Fees","Transport","Events","Other"];
@@ -10,48 +11,41 @@ const blankIncome  = { type:"income",  description:"", amount:"", date:new Date(
 const blankExpense = { type:"expense", description:"", amount:"", date:new Date().toISOString().split("T")[0], category:"Supplies" };
 
 const FinancialManagement = () => {
-  const [records, setRecords]   = useState([]);
-  const [tab, setTab]           = useState("overview");
+  const [records, setRecords] = useState([]);
+  const [tab, setTab]         = useState("overview");
   const [showIncForm, setShowIncForm] = useState(false);
   const [showExpForm, setShowExpForm] = useState(false);
-  const [incForm, setIncForm]   = useState(blankIncome);
-  const [expForm, setExpForm]   = useState(blankExpense);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
+  const [incForm, setIncForm] = useState(blankIncome);
+  const [expForm, setExpForm] = useState(blankExpense);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [error, setError]       = useState("");
+  const [error, setError]     = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => { fetchRecords(); }, []);
-
-  const fetchRecords = async () => {
-    try { setLoading(true); const data = await financialAPI.getAll(); setRecords(data); }
-    catch (err) { setError("Could not load financial records."); }
-    finally { setLoading(false); }
-  };
-
+  const fetchRecords = async () => { try { setLoading(true); const d = await financialAPI.getAll(); setRecords(d); } catch { setError("Could not load records."); } finally { setLoading(false); } };
   const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(""), 3000); };
 
   const handleAdd = async (e, form, reset) => {
     e.preventDefault(); setError(""); setSaving(true);
-    try {
-      await financialAPI.create({ ...form, amount: Number(form.amount) });
-      flash("✅ Record saved to database.");
-      reset(); fetchRecords();
-    } catch (err) { setError("Save failed: " + err.message); }
+    try { await financialAPI.create({...form,amount:Number(form.amount)}); flash("✅ Record saved."); reset(); fetchRecords(); }
+    catch (err) { setError("Save failed: " + err.message); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    try { await financialAPI.delete(id); flash("✅ Record deleted."); setDeleteId(null); fetchRecords(); }
-    catch (err) { setError("Delete failed."); }
+    try { await financialAPI.delete(id); flash("✅ Deleted."); setDeleteId(null); fetchRecords(); }
+    catch { setError("Delete failed."); }
   };
 
-  const income   = records.filter(r => r.type === "income");
-  const expenses = records.filter(r => r.type === "expense");
-  const totalIncome   = income.reduce((s,r) => s + r.amount, 0);
-  const totalExpenses = expenses.reduce((s,r) => s + r.amount, 0);
+  const income   = records.filter(r => r.type==="income");
+  const expenses = records.filter(r => r.type==="expense");
+  const totalIncome   = income.reduce((s,r) => s+r.amount, 0);
+  const totalExpenses = expenses.reduce((s,r) => s+r.amount, 0);
   const net = totalIncome - totalExpenses;
+
+  const printTitle = tab==="overview" ? "Financial Overview Report" : tab==="income" ? "Income Report" : "Expense Report";
 
   return (
     <div className="admin-page">
@@ -59,13 +53,13 @@ const FinancialManagement = () => {
       <div className="admin-body">
         <div className="page-header">
           <div><h1>💰 Financial Management</h1><p>Track income and expenses</p></div>
+          <PrintButton printAreaId="print-area" title={printTitle} />
         </div>
 
         {error      && <div className="banner error-banner">❌ {error}</div>}
         {successMsg && <div className="banner success-banner">{successMsg}</div>}
 
-        {/* Tabs */}
-        <div className="tab-row">
+        <div className="tab-row no-print">
           {["overview","income","expenses"].map(t => (
             <button key={t} className={`tab-btn ${tab===t?"active":""}`} onClick={() => setTab(t)}>
               {t==="overview"?"📊 Overview":t==="income"?"💚 Income":"🔴 Expenses"}
@@ -73,15 +67,15 @@ const FinancialManagement = () => {
           ))}
         </div>
 
-        {loading ? <div className="loading-box">⏳ Loading from database...</div> : (
-          <>
+        {loading ? <div className="loading-box">⏳ Loading records...</div> : (
+          <div id="print-area">
             {/* OVERVIEW */}
-            {tab === "overview" && (
+            {tab==="overview" && (
               <div>
                 <div className="fin-stats">
-                  <div className="fin-stat green"><p className="fin-label">Total Income</p><p className="fin-value">{fmt(totalIncome)}</p></div>
-                  <div className="fin-stat red"><p className="fin-label">Total Expenses</p><p className="fin-value">{fmt(totalExpenses)}</p></div>
-                  <div className={`fin-stat ${net>=0?"blue":"orange"}`}><p className="fin-label">Net Balance</p><p className="fin-value">{fmt(Math.abs(net))} {net<0?"(Deficit)":"(Surplus)"}</p></div>
+                  <div className="fin-stat green"><p className="fin-label">Total Income</p><p className="fin-value income">{fmt(totalIncome)}</p></div>
+                  <div className="fin-stat red"><p className="fin-label">Total Expenses</p><p className="fin-value expense">{fmt(totalExpenses)}</p></div>
+                  <div className={`fin-stat ${net>=0?"blue":"orange"}`}><p className="fin-label">Net Balance</p><p className={`fin-value ${net>=0?"balance":"expense"}`}>{fmt(Math.abs(net))} {net<0?"(Deficit)":"(Surplus)"}</p></div>
                 </div>
                 <div className="overview-tables">
                   <div className="ov-section">
@@ -90,7 +84,7 @@ const FinancialManagement = () => {
                       <table className="data-table">
                         <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th></tr></thead>
                         <tbody>{income.slice(-5).map(r => (
-                          <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag green-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="amount green-amount">{fmt(r.amount)}</td></tr>
+                          <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag green-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="income fw">{fmt(r.amount)}</td></tr>
                         ))}</tbody>
                       </table>
                     </div>
@@ -101,7 +95,7 @@ const FinancialManagement = () => {
                       <table className="data-table">
                         <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th></tr></thead>
                         <tbody>{expenses.slice(-5).map(r => (
-                          <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag red-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="amount red-amount">{fmt(r.amount)}</td></tr>
+                          <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag red-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="expense fw">{fmt(r.amount)}</td></tr>
                         ))}</tbody>
                       </table>
                     </div>
@@ -111,20 +105,20 @@ const FinancialManagement = () => {
             )}
 
             {/* INCOME */}
-            {tab === "income" && (
+            {tab==="income" && (
               <div>
                 <div className="section-header">
-                  <p className="section-total green-amount">Total: {fmt(totalIncome)}</p>
-                  <button className="add-btn" onClick={() => setShowIncForm(!showIncForm)}>{showIncForm?"✕ Cancel":"+ Add Income"}</button>
+                  <p className="section-total income fw">Total Income: {fmt(totalIncome)}</p>
+                  <button className="add-btn no-print" onClick={() => setShowIncForm(!showIncForm)}>{showIncForm?"✕ Cancel":"+ Add Income"}</button>
                 </div>
                 {showIncForm && (
-                  <div className="form-card">
+                  <div className="form-card no-print">
                     <h2>Add Income Record</h2>
-                    <form onSubmit={e => handleAdd(e, incForm, () => { setIncForm(blankIncome); setShowIncForm(false); })} className="grid-form">
-                      <div className="form-group full"><label>Description *</label><input required type="text" value={incForm.description} onChange={e => setIncForm({...incForm,description:e.target.value})} placeholder="Income description" /></div>
-                      <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={incForm.amount} onChange={e => setIncForm({...incForm,amount:e.target.value})} /></div>
-                      <div className="form-group"><label>Date *</label><input required type="date" value={incForm.date} onChange={e => setIncForm({...incForm,date:e.target.value})} /></div>
-                      <div className="form-group"><label>Category</label><select value={incForm.category} onChange={e => setIncForm({...incForm,category:e.target.value})}>{incomeCategories.map(c=><option key={c}>{c}</option>)}</select></div>
+                    <form onSubmit={e => handleAdd(e,incForm,() => { setIncForm(blankIncome); setShowIncForm(false); })} className="grid-form">
+                      <div className="form-group full"><label>Description *</label><input required type="text" value={incForm.description} onChange={e=>setIncForm({...incForm,description:e.target.value})} /></div>
+                      <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={incForm.amount} onChange={e=>setIncForm({...incForm,amount:e.target.value})} /></div>
+                      <div className="form-group"><label>Date *</label><input required type="date" value={incForm.date} onChange={e=>setIncForm({...incForm,date:e.target.value})} /></div>
+                      <div className="form-group"><label>Category</label><select value={incForm.category} onChange={e=>setIncForm({...incForm,category:e.target.value})}>{incomeCategories.map(c=><option key={c}>{c}</option>)}</select></div>
                       <div className="form-actions full">
                         <button type="submit" className="submit-btn" disabled={saving}>{saving?"Saving...":"Add Income"}</button>
                         <button type="button" className="cancel-btn" onClick={() => setShowIncForm(false)}>Cancel</button>
@@ -134,9 +128,9 @@ const FinancialManagement = () => {
                 )}
                 <div className="table-wrap">
                   <table className="data-table">
-                    <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Actions</th></tr></thead>
-                    <tbody>{income.length === 0 ? <tr><td colSpan="5" className="no-data">No income records yet.</td></tr> : income.map(r => (
-                      <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag green-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="amount green-amount">{fmt(r.amount)}</td><td><button className="btn-del" onClick={() => setDeleteId(r._id)}>Delete</button></td></tr>
+                    <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th className="no-print">Actions</th></tr></thead>
+                    <tbody>{income.length===0?<tr><td colSpan="5" className="no-data">No income records yet.</td></tr>:income.map(r=>(
+                      <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag green-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="income fw">{fmt(r.amount)}</td><td className="no-print"><button className="btn-del" onClick={() => setDeleteId(r._id)}>Delete</button></td></tr>
                     ))}</tbody>
                   </table>
                 </div>
@@ -144,20 +138,20 @@ const FinancialManagement = () => {
             )}
 
             {/* EXPENSES */}
-            {tab === "expenses" && (
+            {tab==="expenses" && (
               <div>
                 <div className="section-header">
-                  <p className="section-total red-amount">Total: {fmt(totalExpenses)}</p>
-                  <button className="add-btn" onClick={() => setShowExpForm(!showExpForm)}>{showExpForm?"✕ Cancel":"+ Add Expense"}</button>
+                  <p className="section-total expense fw">Total Expenses: {fmt(totalExpenses)}</p>
+                  <button className="add-btn no-print" onClick={() => setShowExpForm(!showExpForm)}>{showExpForm?"✕ Cancel":"+ Add Expense"}</button>
                 </div>
                 {showExpForm && (
-                  <div className="form-card">
+                  <div className="form-card no-print">
                     <h2>Add Expense Record</h2>
-                    <form onSubmit={e => handleAdd(e, expForm, () => { setExpForm(blankExpense); setShowExpForm(false); })} className="grid-form">
-                      <div className="form-group full"><label>Description *</label><input required type="text" value={expForm.description} onChange={e => setExpForm({...expForm,description:e.target.value})} placeholder="Expense description" /></div>
-                      <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={expForm.amount} onChange={e => setExpForm({...expForm,amount:e.target.value})} /></div>
-                      <div className="form-group"><label>Date *</label><input required type="date" value={expForm.date} onChange={e => setExpForm({...expForm,date:e.target.value})} /></div>
-                      <div className="form-group"><label>Category</label><select value={expForm.category} onChange={e => setExpForm({...expForm,category:e.target.value})}>{expenseCategories.map(c=><option key={c}>{c}</option>)}</select></div>
+                    <form onSubmit={e => handleAdd(e,expForm,() => { setExpForm(blankExpense); setShowExpForm(false); })} className="grid-form">
+                      <div className="form-group full"><label>Description *</label><input required type="text" value={expForm.description} onChange={e=>setExpForm({...expForm,description:e.target.value})} /></div>
+                      <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={expForm.amount} onChange={e=>setExpForm({...expForm,amount:e.target.value})} /></div>
+                      <div className="form-group"><label>Date *</label><input required type="date" value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} /></div>
+                      <div className="form-group"><label>Category</label><select value={expForm.category} onChange={e=>setExpForm({...expForm,category:e.target.value})}>{expenseCategories.map(c=><option key={c}>{c}</option>)}</select></div>
                       <div className="form-actions full">
                         <button type="submit" className="submit-btn" disabled={saving}>{saving?"Saving...":"Add Expense"}</button>
                         <button type="button" className="cancel-btn" onClick={() => setShowExpForm(false)}>Cancel</button>
@@ -167,21 +161,21 @@ const FinancialManagement = () => {
                 )}
                 <div className="table-wrap">
                   <table className="data-table">
-                    <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Actions</th></tr></thead>
-                    <tbody>{expenses.length === 0 ? <tr><td colSpan="5" className="no-data">No expense records yet.</td></tr> : expenses.map(r => (
-                      <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag red-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="amount red-amount">{fmt(r.amount)}</td><td><button className="btn-del" onClick={() => setDeleteId(r._id)}>Delete</button></td></tr>
+                    <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th className="no-print">Actions</th></tr></thead>
+                    <tbody>{expenses.length===0?<tr><td colSpan="5" className="no-data">No expense records yet.</td></tr>:expenses.map(r=>(
+                      <tr key={r._id}><td>{r.description}</td><td><span className="cat-tag red-tag">{r.category}</span></td><td>{new Date(r.date).toLocaleDateString("en-LK")}</td><td className="expense fw">{fmt(r.amount)}</td><td className="no-print"><button className="btn-del" onClick={() => setDeleteId(r._id)}>Delete</button></td></tr>
                     ))}</tbody>
                   </table>
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {deleteId && (
           <div className="modal-overlay" onClick={() => setDeleteId(null)}>
             <div className="modal-card small" onClick={e => e.stopPropagation()}>
-              <h2>⚠️ Delete Record?</h2><p>This will permanently remove this financial record.</p>
+              <h2>⚠️ Delete Record?</h2><p>This will permanently remove this record.</p>
               <div className="modal-actions">
                 <button className="btn-del" onClick={() => handleDelete(deleteId)}>Yes, Delete</button>
                 <button className="cancel-btn" onClick={() => setDeleteId(null)}>Cancel</button>
@@ -204,7 +198,8 @@ const FinancialManagement = () => {
         .fin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;margin-bottom:28px;}
         .fin-stat{background:white;border-radius:16px;padding:22px 26px;box-shadow:0 4px 14px rgba(0,0,0,0.08);border-left:5px solid;}
         .fin-stat.green{border-color:#34d399;} .fin-stat.red{border-color:#f87171;} .fin-stat.blue{border-color:#4facfe;} .fin-stat.orange{border-color:#f59e0b;}
-        .fin-label{font-size:13px;color:#888;margin-bottom:8px;font-weight:600;} .fin-value{font-size:20px;font-weight:800;color:#333;}
+        .fin-label{font-size:13px;color:#888;margin-bottom:8px;font-weight:600;} .fin-value{font-size:20px;font-weight:800;}
+        .income{color:#16a34a;} .expense{color:#dc2626;} .balance{color:#4facfe;} .fw{font-weight:700;}
         .overview-tables{display:flex;gap:24px;flex-wrap:wrap;}
         .ov-section{flex:1;min-width:300px;} .ov-section h2{font-size:18px;color:#ff4fa3;margin-bottom:14px;}
         .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
@@ -229,7 +224,6 @@ const FinancialManagement = () => {
         .data-table tr:last-child td{border-bottom:none;} .data-table tr:hover td{background:#fdf4f9;}
         .cat-tag{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
         .green-tag{background:#dcfce7;color:#15803d;} .red-tag{background:#fee2e2;color:#dc2626;}
-        .amount{font-weight:700;} .green-amount{color:#16a34a;} .red-amount{color:#dc2626;}
         .btn-del{padding:6px 14px;border-radius:20px;border:2px solid #f87171;background:white;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;}
         .no-data{text-align:center;padding:30px;color:#aaa;font-size:15px;}
         .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;}
