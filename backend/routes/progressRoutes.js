@@ -7,7 +7,7 @@ const { protect, adminOnly, staffOnly } = require("../middleware/authMiddleware"
 router.get("/", protect, staffOnly, async (req, res) => {
   try {
     const records = await Progress.find()
-      .populate("studentId", "name studentId")
+      .populate("studentId", "name studentId className")
       .sort({ date: -1 });
     res.json(records);
   } catch (err) {
@@ -29,7 +29,7 @@ router.get("/student/:studentId", protect, async (req, res) => {
 // ── GET single record ──────────────────────────────────────────────────────
 router.get("/:id", protect, async (req, res) => {
   try {
-    const record = await Progress.findById(req.params.id).populate("studentId", "name studentId");
+    const record = await Progress.findById(req.params.id).populate("studentId", "name studentId className");
     if (!record) return res.status(404).json({ message: "Record not found" });
     res.json(record);
   } catch (err) {
