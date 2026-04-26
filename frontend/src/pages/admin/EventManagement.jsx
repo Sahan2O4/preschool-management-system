@@ -4,6 +4,9 @@ import Footer from "../../components/Footer";
 import PrintButton from "../../components/PrintButton";
 import { eventAPI } from "../../services/api";
 
+const today = new Date().toISOString().split("T")[0];
+
+
 const categories = ["Sports","Arts","Academic","Cultural","Other"];
 const categoryColors = { Sports:"#4facfe",Arts:"#ff7eb3",Academic:"#a78bfa",Cultural:"#34d399",Other:"#f59e0b" };
 const blank = { title:"",date:"",time:"",location:"",category:"Sports",description:"",organizer:"" };
@@ -67,7 +70,7 @@ const EventManagement = () => {
             <h2>{editId?"Edit Event":"Add New Event"}</h2>
             <form onSubmit={handleSubmit} className="grid-form">
               <div className="form-group full"><label>Event Title *</label><input required type="text" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Event name" /></div>
-              <div className="form-group"><label>Date *</label><input required type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} /></div>
+              <div className="form-group"><label>Date *</label><input required type="date" min={today} value={form.date} onChange={e=>setForm({...form,date:e.target.value})} /></div>
               <div className="form-group"><label>Time *</label><input required type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} /></div>
               <div className="form-group"><label>Location *</label><input required type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Venue" /></div>
               <div className="form-group"><label>Category</label><select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></div>

@@ -2,16 +2,17 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import PrintButton from "../../components/PrintButton";
-import { sessionAPI } from "../../services/api";
+import { sessionAPI, authAPI } from "../../services/api";
 
 const subjects = ["English","Mathematics","Science","Arts & Crafts","Music","Physical Education"];
-const teachers = ["Mrs. Sumithra Sajeewanee","Mrs. Rasika Dulmini","Miss Nirusha Subhashinie","Mrs. Lasanthi Lakmali","Mrs. Diana Lakmali","Mrs. Thushari Samanthika"];
+const today = new Date().toISOString().split("T")[0];
 const levels   = ["Beginner","Intermediate","Advanced","All Levels"];
 const subjectColors = { English:"#4facfe",Mathematics:"#ff7eb3",Science:"#34d399","Arts & Crafts":"#f59e0b",Music:"#a78bfa","Physical Education":"#f87171" };
-const blank = { title:"",subject:subjects[0],teacher:teachers[0],date:"",time:"",duration:"45",level:"All Levels",description:"",spots:"15" };
+const blank = { title:"",subject:subjects[0],teacher:"",date:"",time:"",duration:"45",level:"All Levels",description:"",spots:"15" };
 
 const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
+  const [teachers, setTeachers]   = useState([]);
   const [form, setForm]         = useState(blank);
   const [editId, setEditId]     = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -23,8 +24,9 @@ const SessionManagement = () => {
   const [error, setError]       = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => { fetchSessions(); fetchTeachers(); }, []);
   const fetchSessions = async () => { try { setLoading(true); const d = await sessionAPI.getAll(); setSessions(d); } catch { setError("Could not load sessions."); } finally { setLoading(false); } };
+  const fetchTeachers = async () => { try { const d = await authAPI.getTeachers(); setTeachers(d); } catch {} };
   const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(""), 3000); };
 
   const handleSubmit = async (e) => {
@@ -71,8 +73,8 @@ const SessionManagement = () => {
             <form onSubmit={handleSubmit} className="grid-form">
               <div className="form-group full"><label>Session Title *</label><input required type="text" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Session title" /></div>
               <div className="form-group"><label>Subject *</label><select value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}>{subjects.map(s=><option key={s}>{s}</option>)}</select></div>
-              <div className="form-group"><label>Teacher *</label><select value={form.teacher} onChange={e=>setForm({...form,teacher:e.target.value})}>{teachers.map(t=><option key={t}>{t}</option>)}</select></div>
-              <div className="form-group"><label>Date *</label><input required type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} /></div>
+              <div className="form-group"><label>Teacher *</label><select required value={form.teacher} onChange={e=>setForm({...form,teacher:e.target.value})}><option value="">— Select Teacher —</option>{teachers.map(t=><option key={t._id} value={t.name}>{t.name}</option>)}</select></div>
+              <div className="form-group"><label>Date *</label><input required type="date" min={today} value={form.date} onChange={e=>setForm({...form,date:e.target.value})} /></div>
               <div className="form-group"><label>Time *</label><input required type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} /></div>
               <div className="form-group"><label>Duration (min) *</label><input required type="number" min="15" value={form.duration} onChange={e=>setForm({...form,duration:e.target.value})} /></div>
               <div className="form-group"><label>Level</label><select value={form.level} onChange={e=>setForm({...form,level:e.target.value})}>{levels.map(l=><option key={l}>{l}</option>)}</select></div>
