@@ -20,7 +20,8 @@ const Login = () => {
   // Already logged in → redirect
   useEffect(() => {
     if (user) {
-      if (user.role === "admin" || user.role === "teacher") navigate("/admin");
+      if (user.role === "admin") navigate("/admin");
+      else if (user.role === "teacher") navigate("/teacher");
       else navigate("/profile");
     }
   }, [user, navigate]);
@@ -32,7 +33,8 @@ const Login = () => {
     const result = await login(loginData.email, loginData.password);
     setLoading(false);
     if (result.success) {
-      if (result.role === "admin" || result.role === "teacher") navigate("/admin");
+      if (result.role === "admin") navigate("/admin");
+      else if (result.role === "teacher") navigate("/teacher");
       else navigate("/profile");
     } else {
       setError(result.message || "Invalid email or password.");

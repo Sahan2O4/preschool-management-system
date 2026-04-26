@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Student = require("../models/Student");
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { protect, adminOnly, staffOnly } = require("../middleware/authMiddleware");
 
 // ── GET all students (admin only) ─────────────────────────────────────────
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, staffOnly, async (req, res) => {
   try {
     const students = await Student.find().sort({ createdAt: -1 });
     res.json(students);
@@ -41,7 +41,7 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 // ── POST create new student (admin only) ──────────────────────────────────
-router.post("/", protect, adminOnly, async (req, res) => {
+router.post("/", protect, staffOnly, async (req, res) => {
   try {
     const {
       name, dateOfBirth, address, enrolledDate, className,
@@ -66,7 +66,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
 });
 
 // ── PUT update student (admin only) ───────────────────────────────────────
-router.put("/:id", protect, adminOnly, async (req, res) => {
+router.put("/:id", protect, staffOnly, async (req, res) => {
   try {
     // Normalise email to lowercase if provided
     if (req.body.parentEmail) {

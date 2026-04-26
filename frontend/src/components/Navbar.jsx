@@ -25,9 +25,20 @@ const Navbar = ({ currentPage, mode = "public" }) => {
     { label: "Feedback",   path: "/admin/feedback" },
     { label: "Financial",  path: "/admin/financial" },
     { label: "Sessions",   path: "/admin/sessions" },
+    { label: "Teachers",   path: "/admin/teachers" },
   ];
 
-  const navItems = mode === "admin" ? adminNav : publicNav;
+  const teacherNav = [
+    { label: "Dashboard",  path: "/teacher" },
+    { label: "Students",   path: "/teacher/students" },
+    { label: "Attendance", path: "/teacher/attendance" },
+    { label: "Progress",   path: "/teacher/progress" },
+    { label: "Events",     path: "/teacher/events" },
+    { label: "Feedback",   path: "/teacher/feedback" },
+    { label: "Sessions",   path: "/teacher/sessions" },
+  ];
+
+  const navItems = mode === "admin" ? adminNav : mode === "teacher" ? teacherNav : publicNav;
 
   const handleLogout = () => {
     logout();
@@ -57,8 +68,10 @@ const Navbar = ({ currentPage, mode = "public" }) => {
             👤 {user.name?.split(" ")[0]}
             <span className="role-tag">{user.role}</span>
           </span>
-          {user.role === "admin" || user.role === "teacher"
+          {user.role === "admin"
             ? <button className="login-btn" onClick={() => goTo("/admin")}>Dashboard</button>
+            : user.role === "teacher"
+            ? <button className="login-btn" onClick={() => goTo("/teacher")}>Dashboard</button>
             : <button className="login-btn" onClick={() => goTo("/profile")}>My Profile</button>
           }
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
@@ -125,8 +138,10 @@ const Navbar = ({ currentPage, mode = "public" }) => {
                       👤 {user.name?.split(" ")[0]}
                       <span className="role-tag">{user.role}</span>
                     </div>
-                    {user.role === "admin" || user.role === "teacher" ? (
+                    {user.role === "admin" ? (
                       <button className="mobile-nav-btn" onClick={() => goTo("/admin")}>📊 Dashboard</button>
+                    ) : user.role === "teacher" ? (
+                      <button className="mobile-nav-btn" onClick={() => goTo("/teacher")}>📊 Dashboard</button>
                     ) : (
                       <button className="mobile-nav-btn" onClick={() => goTo("/profile")}>👤 My Profile</button>
                     )}

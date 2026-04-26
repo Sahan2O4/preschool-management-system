@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Progress = require("../models/Progress");
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { protect, adminOnly, staffOnly } = require("../middleware/authMiddleware");
 
 // ── GET all progress records ───────────────────────────────────────────────
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, staffOnly, async (req, res) => {
   try {
     const records = await Progress.find()
       .populate("studentId", "name studentId")
@@ -38,7 +38,7 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 // ── POST create progress record ────────────────────────────────────────────
-router.post("/", protect, adminOnly, async (req, res) => {
+router.post("/", protect, staffOnly, async (req, res) => {
   try {
     const { studentId, subject, grade, description, date } = req.body;
     const record = await Progress.create({
@@ -52,7 +52,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
 });
 
 // ── PUT update progress record ─────────────────────────────────────────────
-router.put("/:id", protect, adminOnly, async (req, res) => {
+router.put("/:id", protect, staffOnly, async (req, res) => {
   try {
     const record = await Progress.findByIdAndUpdate(
       req.params.id,
@@ -67,7 +67,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
 });
 
 // ── DELETE progress record ─────────────────────────────────────────────────
-router.delete("/:id", protect, adminOnly, async (req, res) => {
+router.delete("/:id", protect, staffOnly, async (req, res) => {
   try {
     const record = await Progress.findByIdAndDelete(req.params.id);
     if (!record) return res.status(404).json({ message: "Record not found" });

@@ -22,4 +22,10 @@ const adminOnly = (req, res, next) => {
   return res.status(403).json({ message: "Admin access required" });
 };
 
-module.exports = { protect, adminOnly };
+// admin OR teacher
+const staffOnly = (req, res, next) => {
+  if (req.user && (req.user.role === "admin" || req.user.role === "teacher")) return next();
+  return res.status(403).json({ message: "Staff access required" });
+};
+
+module.exports = { protect, adminOnly, staffOnly };

@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Feedback = require("../models/Feedback");
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { protect, adminOnly, staffOnly } = require("../middleware/authMiddleware");
 
 // ── GET all feedback (admin only) ──────────────────────────────────────────
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, staffOnly, async (req, res) => {
   try {
     const feedbacks = await Feedback.find().sort({ createdAt: -1 });
     res.json(feedbacks);
@@ -14,7 +14,7 @@ router.get("/", protect, adminOnly, async (req, res) => {
 });
 
 // ── GET single feedback ────────────────────────────────────────────────────
-router.get("/:id", protect, adminOnly, async (req, res) => {
+router.get("/:id", protect, staffOnly, async (req, res) => {
   try {
     const fb = await Feedback.findById(req.params.id);
     if (!fb) return res.status(404).json({ message: "Feedback not found" });
@@ -36,7 +36,7 @@ router.post("/", async (req, res) => {
 });
 
 // ── PUT respond to feedback (admin only) ───────────────────────────────────
-router.put("/:id", protect, adminOnly, async (req, res) => {
+router.put("/:id", protect, staffOnly, async (req, res) => {
   try {
     const fb = await Feedback.findByIdAndUpdate(
       req.params.id,

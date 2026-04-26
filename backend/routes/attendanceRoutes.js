@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Attendance = require("../models/Attendance");
-const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { protect, adminOnly, staffOnly } = require("../middleware/authMiddleware");
 
 // ── GET all attendance records ─────────────────────────────────────────────
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, staffOnly, async (req, res) => {
   try {
     const records = await Attendance.find()
       .populate("records.studentId", "name studentId")
@@ -16,7 +16,7 @@ router.get("/", protect, adminOnly, async (req, res) => {
 });
 
 // ── GET attendance by date ─────────────────────────────────────────────────
-router.get("/date/:date", protect, adminOnly, async (req, res) => {
+router.get("/date/:date", protect, staffOnly, async (req, res) => {
   try {
     const record = await Attendance.findOne({ date: new Date(req.params.date) })
       .populate("records.studentId", "name studentId");
@@ -28,7 +28,7 @@ router.get("/date/:date", protect, adminOnly, async (req, res) => {
 });
 
 // ── POST create/save attendance for a date ─────────────────────────────────
-router.post("/", protect, adminOnly, async (req, res) => {
+router.post("/", protect, staffOnly, async (req, res) => {
   try {
     const { date, records } = req.body;
 
@@ -46,7 +46,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
 });
 
 // ── PUT update a single student's attendance status ────────────────────────
-router.put("/:id", protect, adminOnly, async (req, res) => {
+router.put("/:id", protect, staffOnly, async (req, res) => {
   try {
     const attendance = await Attendance.findByIdAndUpdate(
       req.params.id,
@@ -61,7 +61,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
 });
 
 // ── DELETE attendance record by ID ─────────────────────────────────────────
-router.delete("/:id", protect, adminOnly, async (req, res) => {
+router.delete("/:id", protect, staffOnly, async (req, res) => {
   try {
     const record = await Attendance.findByIdAndDelete(req.params.id);
     if (!record) return res.status(404).json({ message: "Record not found" });

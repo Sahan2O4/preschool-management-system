@@ -1,4 +1,5 @@
 const express = require("express");
+const { protect, adminOnly } = require("../middleware/authMiddleware");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -46,6 +47,30 @@ router.post("/login", async (req, res) => {
       token: generateToken(user),
       user: { id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone },
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// ── GET /api/auth/teachers (admin only) ───────────────────────────────────
+router.get("/teachers", protect, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  try {
+    const teachers = await User.find({ role: "teacher" }).select("-password").sort({ createdAt: -1 });
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── DELETE /api/auth/teachers/:id (admin only) ────────────────────────────
+router.delete("/teachers/:id", protect, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  try {
+    const teacher = await User.findOneAndDelete({ _id: req.params.id, role: "teacher" });
+    if (!teacher) return res.status(404).json({ message: "Teacher not found" });
+    res.json({ message: "Teacher removed" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

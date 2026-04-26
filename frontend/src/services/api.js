@@ -26,6 +26,21 @@ const handleRes = async (res) => {
 // AUTH
 // ═══════════════════════════════════════════════════════════════
 export const authAPI = {
+  getTeachers: () =>
+    fetch(`${BASE_URL}/auth/teachers`, { headers: authHeaders() }).then(handleRes),
+
+  registerTeacher: (data) =>
+    fetch(`${BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(handleRes),
+
+  deleteTeacher: (id) =>
+    fetch(`${BASE_URL}/auth/teachers/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).then(handleRes),
   login: (email, password) =>
     fetch(`${BASE_URL}/auth/login`, {
       method: "POST",

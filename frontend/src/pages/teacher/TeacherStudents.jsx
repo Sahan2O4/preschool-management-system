@@ -14,7 +14,7 @@ const blankForm = {
 
 const classColors = { "Class A": "#4facfe", "Class B": "#a78bfa", "Class C": "#34d399" };
 
-const StudentManagement = () => {
+const TeacherStudents = () => {
   const [students, setStudents]       = useState([]);
   const [form, setForm]               = useState(blankForm);
   const [editId, setEditId]           = useState(null);
@@ -83,7 +83,7 @@ const StudentManagement = () => {
 
   return (
     <div className="admin-page">
-      <Navbar currentPage="Students" mode="admin" />
+      <Navbar currentPage="Students" mode="teacher" />
       <div className="admin-body">
 
         <div className="page-header">
@@ -117,13 +117,13 @@ const StudentManagement = () => {
               <div className="section-divider full"><span>👨‍👩‍👧 Parent / Guardian Details</span></div>
               <div className="form-group"><label>Parent Name *</label><input type="text" required placeholder="Parent's full name" value={form.parentName} onChange={set("parentName")} /></div>
               <div className="form-group">
-                <label>Parent Phone * <span className="email-hint"></span></label>
+                <label>Parent Phone * <span className="email-hint">— exactly 10 digits</span></label>
                 <input type="tel" required placeholder="0771234567" maxLength={10}
                   pattern="\d{10}" title="Must be exactly 10 digits"
                   value={form.parentPhone} onChange={e => setForm(p => ({...p, parentPhone: e.target.value.replace(/\D/g,"")}))} />
               </div>
               <div className="form-group full email-group">
-                <label>Parent Email * <span className="email-hint"></span></label>
+                <label>Parent Email * <span className="email-hint">— must match the parent's login email</span></label>
                 <input type="email" required placeholder="parent@email.com" value={form.parentEmail} onChange={set("parentEmail")} />
               </div>
               <div className="form-actions full">
@@ -274,4 +274,4 @@ const StudentManagement = () => {
     </div>
   );
 };
-export default StudentManagement;
+export default TeacherStudents;
