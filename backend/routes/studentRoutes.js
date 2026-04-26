@@ -44,7 +44,7 @@ router.get("/:id", protect, async (req, res) => {
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const {
-      name, dateOfBirth, address, enrolledDate,
+      name, dateOfBirth, address, enrolledDate, className,
       status, parentName, parentPhone, parentEmail,
     } = req.body;
 
@@ -54,7 +54,8 @@ router.post("/", protect, adminOnly, async (req, res) => {
 
     const student = await Student.create({
       studentId, name, dateOfBirth, address,
-      enrolledDate, status, parentName, parentPhone,
+      enrolledDate, status, className: className || "Class A",
+      parentName, parentPhone,
       parentEmail: parentEmail?.toLowerCase(),
     });
 

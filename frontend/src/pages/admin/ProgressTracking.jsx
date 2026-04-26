@@ -4,25 +4,28 @@ import Footer from "../../components/Footer";
 import PrintButton from "../../components/PrintButton";
 import { progressAPI, studentAPI } from "../../services/api";
 
+const today = new Date().toISOString().split("T")[0];
 const subjects = ["English","Mathematics","Science","Arts & Crafts","Music","Physical Education"];
 const grades   = ["A+","A","A-","B+","B","B-","C","D"];
 const gradeColors = { "A+":"#16a34a","A":"#22c55e","A-":"#4ade80","B+":"#4facfe","B":"#60a5fa","B-":"#93c5fd","C":"#f59e0b","D":"#f87171" };
 const subjectColors = { English:"#4facfe",Mathematics:"#ff7eb3",Science:"#34d399","Arts & Crafts":"#f59e0b",Music:"#a78bfa","Physical Education":"#f87171" };
-const blank = { studentId:"", subject:subjects[0], grade:"A", date:new Date().toISOString().split("T")[0], description:"" };
+const classColors = { "Class A": "#4facfe", "Class B": "#a78bfa", "Class C": "#34d399" };
+const blank = { studentId:"", subject:subjects[0], grade:"A", date:today, description:"" };
 
 const ProgressTracking = () => {
-  const [records, setRecords]         = useState([]);
-  const [students, setStudents]       = useState([]);
-  const [form, setForm]               = useState(blank);
-  const [editId, setEditId]           = useState(null);
-  const [showForm, setShowForm]       = useState(false);
-  const [filterStudent, setFilterStudent] = useState("All");
+  const [records, setRecords]           = useState([]);
+  const [students, setStudents]         = useState([]);
+  const [form, setForm]                 = useState(blank);
+  const [editId, setEditId]             = useState(null);
+  const [showForm, setShowForm]         = useState(false);
+  const [searchName, setSearchName]     = useState("");
+  const [filterClass, setFilterClass]   = useState("All");
   const [filterSubject, setFilterSubject] = useState("All");
-  const [loading, setLoading]         = useState(false);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState("");
-  const [successMsg, setSuccessMsg]   = useState("");
-  const [deleteId, setDeleteId]       = useState(null);
+  const [loading, setLoading]           = useState(false);
+  const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState("");
+  const [successMsg, setSuccessMsg]     = useState("");
+  const [deleteId, setDeleteId]         = useState(null);
 
   useEffect(() => { fetchStudents(); fetchRecords(); }, []);
 
@@ -57,11 +60,22 @@ const ProgressTracking = () => {
     catch (err) { setError("Delete failed: " + err.message); }
   };
 
+  // Get student object from record
+  const getStudentObj = (r) => {
+    if (r.studentId && typeof r.studentId === "object") return r.studentId;
+    return students.find(s => s._id === r.studentId) || null;
+  };
+
   const filtered = records.filter(r => {
-    const sm = filterStudent==="All"||(r.studentId?._id||r.studentId)===filterStudent;
-    const sub = filterSubject==="All"||r.subject===filterSubject;
-    return sm && sub;
+    const stu = getStudentObj(r);
+    const matchName = !searchName || (stu?.name || "").toLowerCase().includes(searchName.toLowerCase());
+    const matchClass = filterClass === "All" || stu?.className === filterClass;
+    const matchSub = filterSubject === "All" || r.subject === filterSubject;
+    return matchName && matchClass && matchSub;
   });
+
+  // Students filtered by class for the form dropdown
+  const formStudents = filterClass === "All" ? students : students.filter(s => s.className === filterClass);
 
   return (
     <div className="admin-page">
@@ -88,12 +102,12 @@ const ProgressTracking = () => {
                 <label>Student *</label>
                 <select required value={form.studentId} onChange={e => setForm({...form,studentId:e.target.value})}>
                   <option value="">— Select Student —</option>
-                  {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.studentId})</option>)}
+                  {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.studentId}) — {s.className}</option>)}
                 </select>
               </div>
               <div className="form-group"><label>Subject *</label><select value={form.subject} onChange={e => setForm({...form,subject:e.target.value})}>{subjects.map(s=><option key={s}>{s}</option>)}</select></div>
               <div className="form-group"><label>Grade *</label><select value={form.grade} onChange={e => setForm({...form,grade:e.target.value})}>{grades.map(g=><option key={g}>{g}</option>)}</select></div>
-              <div className="form-group"><label>Date *</label><input required type="date" value={form.date} onChange={e => setForm({...form,date:e.target.value})} /></div>
+              <div className="form-group"><label>Date *</label><input required type="date" max={today} value={form.date} onChange={e => setForm({...form,date:e.target.value})} /></div>
               <div className="form-group full"><label>Description / Notes *</label><textarea required rows="3" value={form.description} onChange={e => setForm({...form,description:e.target.value})} placeholder="Describe the student's performance..." /></div>
               <div className="form-actions full">
                 <button type="submit" className="submit-btn" disabled={saving}>{saving?"⏳ Saving...":editId?"Update Record":"Save Record"}</button>
@@ -104,11 +118,16 @@ const ProgressTracking = () => {
         )}
 
         <div className="filter-bar no-print">
-          <div className="form-group" style={{minWidth:220}}>
-            <label>Filter by Student</label>
-            <select value={filterStudent} onChange={e => setFilterStudent(e.target.value)}>
-              <option value="All">All Students</option>
-              {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.studentId})</option>)}
+          <div className="search-box">
+            <label>🔍 Search by Student Name</label>
+            <input type="text" placeholder="Type student name..." value={searchName}
+              onChange={e => setSearchName(e.target.value)} className="search-input" />
+          </div>
+          <div className="form-group" style={{minWidth:160}}>
+            <label>Filter by Class</label>
+            <select value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+              <option value="All">All Classes</option>
+              <option>Class A</option><option>Class B</option><option>Class C</option>
             </select>
           </div>
           <div className="form-group" style={{minWidth:180}}>
@@ -121,30 +140,35 @@ const ProgressTracking = () => {
           <span className="count-badge" style={{alignSelf:"flex-end"}}>{loading?"Loading...":`${filtered.length} record${filtered.length!==1?"s":""}`}</span>
         </div>
 
-        {/* ── PRINT AREA ── */}
         {loading ? <div className="loading-box">⏳ Loading records...</div> : (
           <div id="print-area">
             <p style={{marginBottom:14,color:"#888",fontSize:13}}>Total records: <strong>{filtered.length}</strong> &nbsp;|&nbsp; Printed: <strong>{new Date().toLocaleDateString("en-LK")}</strong></p>
             <div className="records-grid">
               {filtered.length === 0 ? <p className="no-data">{records.length===0?"No records yet.":"No records match filters."}</p>
-              : filtered.map(r => (
-                <div key={r._id} className="record-card">
-                  <div className="rec-top">
-                    <div>
-                      <p className="rec-student">{r.studentId?.name||"Unknown"}</p>
-                      <p className="rec-student-id">{r.studentId?.studentId||""}</p>
-                      <div className="subj-tag" style={{background:subjectColors[r.subject]||"#aaa"}}>{r.subject}</div>
+              : filtered.map(r => {
+                const stu = getStudentObj(r);
+                return (
+                  <div key={r._id} className="record-card">
+                    <div className="rec-top">
+                      <div>
+                        <p className="rec-student">{stu?.name||r.studentId?.name||"Unknown"}</p>
+                        <p className="rec-student-id">{stu?.studentId||r.studentId?.studentId||""}</p>
+                        {stu?.className && (
+                          <span className="class-tag" style={{background:classColors[stu.className]||"#aaa"}}>{stu.className}</span>
+                        )}
+                        <div className="subj-tag" style={{background:subjectColors[r.subject]||"#aaa"}}>{r.subject}</div>
+                      </div>
+                      <div className="grade-badge" style={{background:gradeColors[r.grade]||"#aaa"}}>{r.grade}</div>
                     </div>
-                    <div className="grade-badge" style={{background:gradeColors[r.grade]||"#aaa"}}>{r.grade}</div>
+                    <p className="rec-date">📅 {new Date(r.date).toLocaleDateString("en-LK")}</p>
+                    <p className="rec-desc">{r.description}</p>
+                    <div className="action-row no-print">
+                      <button className="btn-edit" onClick={() => handleEdit(r)}>✏️ Edit</button>
+                      <button className="btn-del"  onClick={() => setDeleteId(r._id)}>🗑 Delete</button>
+                    </div>
                   </div>
-                  <p className="rec-date">📅 {new Date(r.date).toLocaleDateString("en-LK")}</p>
-                  <p className="rec-desc">{r.description}</p>
-                  <div className="action-row no-print">
-                    <button className="btn-edit" onClick={() => handleEdit(r)}>✏️ Edit</button>
-                    <button className="btn-del"  onClick={() => setDeleteId(r._id)}>🗑 Delete</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -184,13 +208,18 @@ const ProgressTracking = () => {
         .submit-btn:hover:not(:disabled){transform:translateY(-2px);} .submit-btn:disabled{opacity:0.7;cursor:not-allowed;}
         .cancel-btn{padding:12px 28px;border-radius:25px;border:2px solid #ddd;background:white;color:#666;font-weight:600;cursor:pointer;font-size:14px;}
         .filter-bar{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;align-items:flex-end;}
+        .search-box{display:flex;flex-direction:column;gap:6px;flex:1;min-width:200px;}
+        .search-box label{font-weight:600;font-size:13px;color:#555;}
+        .search-input{padding:11px 14px;border-radius:10px;border:2px solid #eee;font-size:14px;outline:none;transition:border 0.2s;}
+        .search-input:focus{border-color:#ff4fa3;}
         .count-badge{padding:8px 18px;background:white;border-radius:20px;font-weight:600;color:#555;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
         .records-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
         .record-card{background:white;border-radius:16px;padding:24px;box-shadow:0 4px 14px rgba(0,0,0,0.08);transition:transform 0.2s;display:flex;flex-direction:column;gap:10px;}
         .record-card:hover{transform:translateY(-4px);}
         .rec-top{display:flex;justify-content:space-between;align-items:flex-start;}
         .rec-student{font-size:16px;font-weight:700;color:#333;margin-bottom:3px;}
-        .rec-student-id{font-size:11px;color:#aaa;margin-bottom:8px;}
+        .rec-student-id{font-size:11px;color:#aaa;margin-bottom:6px;}
+        .class-tag{display:inline-block;padding:2px 10px;border-radius:20px;color:white;font-size:11px;font-weight:700;margin-bottom:6px;margin-right:6px;}
         .subj-tag{display:inline-block;padding:3px 12px;border-radius:20px;color:white;font-size:12px;font-weight:700;}
         .grade-badge{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;flex-shrink:0;}
         .rec-date{font-size:13px;color:#aaa;} .rec-desc{font-size:14px;color:#555;line-height:1.6;flex:1;}

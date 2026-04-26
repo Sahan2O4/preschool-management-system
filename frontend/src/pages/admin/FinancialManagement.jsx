@@ -117,7 +117,7 @@ const FinancialManagement = () => {
                     <form onSubmit={e => handleAdd(e,incForm,() => { setIncForm(blankIncome); setShowIncForm(false); })} className="grid-form">
                       <div className="form-group full"><label>Description *</label><input required type="text" value={incForm.description} onChange={e=>setIncForm({...incForm,description:e.target.value})} /></div>
                       <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={incForm.amount} onChange={e=>setIncForm({...incForm,amount:e.target.value})} /></div>
-                      <div className="form-group"><label>Date *</label><input required type="date" value={incForm.date} onChange={e=>setIncForm({...incForm,date:e.target.value})} /></div>
+                      <div className="form-group"><label>Date *</label><input required type="date" max={new Date().toISOString().split("T")[0]} value={incForm.date} onChange={e=>setIncForm({...incForm,date:e.target.value})} /></div>
                       <div className="form-group"><label>Category</label><select value={incForm.category} onChange={e=>setIncForm({...incForm,category:e.target.value})}>{incomeCategories.map(c=><option key={c}>{c}</option>)}</select></div>
                       <div className="form-actions full">
                         <button type="submit" className="submit-btn" disabled={saving}>{saving?"Saving...":"Add Income"}</button>
@@ -150,7 +150,7 @@ const FinancialManagement = () => {
                     <form onSubmit={e => handleAdd(e,expForm,() => { setExpForm(blankExpense); setShowExpForm(false); })} className="grid-form">
                       <div className="form-group full"><label>Description *</label><input required type="text" value={expForm.description} onChange={e=>setExpForm({...expForm,description:e.target.value})} /></div>
                       <div className="form-group"><label>Amount (LKR) *</label><input required type="number" min="0" value={expForm.amount} onChange={e=>setExpForm({...expForm,amount:e.target.value})} /></div>
-                      <div className="form-group"><label>Date *</label><input required type="date" value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} /></div>
+                      <div className="form-group"><label>Date *</label><input required type="date" max={new Date().toISOString().split("T")[0]} value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} /></div>
                       <div className="form-group"><label>Category</label><select value={expForm.category} onChange={e=>setExpForm({...expForm,category:e.target.value})}>{expenseCategories.map(c=><option key={c}>{c}</option>)}</select></div>
                       <div className="form-actions full">
                         <button type="submit" className="submit-btn" disabled={saving}>{saving?"Saving...":"Add Expense"}</button>

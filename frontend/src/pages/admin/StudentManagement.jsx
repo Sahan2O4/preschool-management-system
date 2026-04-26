@@ -4,10 +4,15 @@ import Footer from "../../components/Footer";
 import PrintButton from "../../components/PrintButton";
 import { studentAPI } from "../../services/api";
 
+const today = new Date().toISOString().split("T")[0];
+
 const blankForm = {
   name: "", dateOfBirth: "", address: "", enrolledDate: "",
-  status: "Active", parentName: "", parentPhone: "", parentEmail: "",
+  status: "Active", className: "Class A",
+  parentName: "", parentPhone: "", parentEmail: "",
 };
+
+const classColors = { "Class A": "#4facfe", "Class B": "#a78bfa", "Class C": "#34d399" };
 
 const StudentManagement = () => {
   const [students, setStudents]       = useState([]);
@@ -17,6 +22,7 @@ const StudentManagement = () => {
   const [viewStudent, setViewStudent] = useState(null);
   const [deleteId, setDeleteId]       = useState(null);
   const [search, setSearch]           = useState("");
+  const [filterClass, setFilterClass] = useState("All");
   const [loading, setLoading]         = useState(true);
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState("");
@@ -33,8 +39,20 @@ const StudentManagement = () => {
   const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(""), 3000); };
   const set = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
+  const validate = () => {
+    if (!/^\d{10}$/.test(form.parentPhone)) {
+      setError("Phone number must be exactly 10 digits."); return false;
+    }
+    if (!form.parentEmail.includes("@")) {
+      setError("Email must contain '@'."); return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); setError(""); setSaving(true);
+    e.preventDefault(); setError("");
+    if (!validate()) return;
+    setSaving(true);
     try {
       if (editId) { await studentAPI.update(editId, form); flash("✅ Student updated."); setEditId(null); }
       else { await studentAPI.create(form); flash("✅ Student added."); }
@@ -45,7 +63,7 @@ const StudentManagement = () => {
 
   const handleEdit = (s) => {
     setForm({ name: s.name, dateOfBirth: s.dateOfBirth?.split("T")[0]||"", address: s.address,
-      enrolledDate: s.enrolledDate?.split("T")[0]||"", status: s.status,
+      enrolledDate: s.enrolledDate?.split("T")[0]||"", status: s.status, className: s.className || "Class A",
       parentName: s.parentName, parentPhone: s.parentPhone, parentEmail: s.parentEmail||"" });
     setEditId(s._id); setShowForm(true); setViewStudent(null);
   };
@@ -55,11 +73,13 @@ const StudentManagement = () => {
     catch (err) { setError("Delete failed: " + err.message); }
   };
 
-  const filtered = students.filter(s =>
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentId?.toLowerCase().includes(search.toLowerCase()) ||
-    s.parentEmail?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = students.filter(s => {
+    const matchSearch = s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.studentId?.toLowerCase().includes(search.toLowerCase()) ||
+      s.parentEmail?.toLowerCase().includes(search.toLowerCase());
+    const matchClass = filterClass === "All" || s.className === filterClass;
+    return matchSearch && matchClass;
+  });
 
   return (
     <div className="admin-page">
@@ -85,13 +105,23 @@ const StudentManagement = () => {
             <div className="info-tip">💡 <strong>Parent Email</strong> must match the email the parent used to register.</div>
             <form onSubmit={handleSubmit} className="grid-form">
               <div className="form-group"><label>Full Name *</label><input type="text" required placeholder="Student's full name" value={form.name} onChange={set("name")} /></div>
-              <div className="form-group"><label>Date of Birth *</label><input type="date" required value={form.dateOfBirth} onChange={set("dateOfBirth")} /></div>
+              <div className="form-group"><label>Date of Birth *</label><input type="date" required max={today} value={form.dateOfBirth} onChange={set("dateOfBirth")} /></div>
               <div className="form-group full"><label>Address *</label><input type="text" required placeholder="Home address" value={form.address} onChange={set("address")} /></div>
-              <div className="form-group"><label>Enrolled Date *</label><input type="date" required value={form.enrolledDate} onChange={set("enrolledDate")} /></div>
+              <div className="form-group"><label>Enrolled Date *</label><input type="date" required max={today} value={form.enrolledDate} onChange={set("enrolledDate")} /></div>
+              <div className="form-group"><label>Class *</label>
+                <select value={form.className} onChange={set("className")}>
+                  <option>Class A</option><option>Class B</option><option>Class C</option>
+                </select>
+              </div>
               <div className="form-group"><label>Status</label><select value={form.status} onChange={set("status")}><option>Active</option><option>Inactive</option></select></div>
               <div className="section-divider full"><span>👨‍👩‍👧 Parent / Guardian Details</span></div>
               <div className="form-group"><label>Parent Name *</label><input type="text" required placeholder="Parent's full name" value={form.parentName} onChange={set("parentName")} /></div>
-              <div className="form-group"><label>Parent Phone *</label><input type="tel" required placeholder="07X XXX XXXX" value={form.parentPhone} onChange={set("parentPhone")} /></div>
+              <div className="form-group">
+                <label>Parent Phone * <span className="email-hint">— exactly 10 digits</span></label>
+                <input type="tel" required placeholder="0771234567" maxLength={10}
+                  pattern="\d{10}" title="Must be exactly 10 digits"
+                  value={form.parentPhone} onChange={e => setForm(p => ({...p, parentPhone: e.target.value.replace(/\D/g,"")}))} />
+              </div>
               <div className="form-group full email-group">
                 <label>Parent Email * <span className="email-hint">— must match the parent's login email</span></label>
                 <input type="email" required placeholder="parent@email.com" value={form.parentEmail} onChange={set("parentEmail")} />
@@ -106,23 +136,27 @@ const StudentManagement = () => {
 
         <div className="search-row">
           <input className="search-input" type="text" placeholder="🔍  Search by name, ID or parent email..." value={search} onChange={e => setSearch(e.target.value)} />
+          <select className="class-filter" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+            <option value="All">All Classes</option>
+            <option>Class A</option><option>Class B</option><option>Class C</option>
+          </select>
           <span className="count-badge">{loading ? "Loading..." : `${filtered.length} student${filtered.length !== 1 ? "s" : ""}`}</span>
         </div>
 
-        {/* ── PRINT AREA ── */}
         <div id="print-area">
           <p style={{marginBottom:12, color:"#888", fontSize:13}}>Total students: <strong>{filtered.length}</strong> &nbsp;|&nbsp; Date: <strong>{new Date().toLocaleDateString("en-LK")}</strong></p>
           {loading ? <div className="loading-box">⏳ Loading students from database...</div> : (
             <div className="table-wrap">
               <table className="data-table">
-                <thead><tr><th>ID</th><th>Name</th><th>Date of Birth</th><th>Enrolled</th><th>Status</th><th>Parent</th><th>Parent Email</th><th className="no-print">Actions</th></tr></thead>
+                <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Date of Birth</th><th>Enrolled</th><th>Status</th><th>Parent</th><th>Parent Email</th><th className="no-print">Actions</th></tr></thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan="8" className="no-data">{students.length === 0 ? "No students yet." : "No students match your search."}</td></tr>
+                    <tr><td colSpan="9" className="no-data">{students.length === 0 ? "No students yet." : "No students match your search."}</td></tr>
                   ) : filtered.map(s => (
                     <tr key={s._id}>
                       <td><span className="id-badge">{s.studentId}</span></td>
                       <td><strong>{s.name}</strong></td>
+                      <td><span className="class-pill" style={{background:classColors[s.className]||"#aaa"}}>{s.className || "—"}</span></td>
                       <td>{s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString("en-LK") : "—"}</td>
                       <td>{s.enrolledDate ? new Date(s.enrolledDate).toLocaleDateString("en-LK") : "—"}</td>
                       <td><span className={`status-pill ${s.status === "Active" ? "active" : "inactive"}`}>{s.status}</span></td>
@@ -150,6 +184,7 @@ const StudentManagement = () => {
               <h2>🎒 {viewStudent.name}</h2>
               <div className="modal-grid">
                 <div><strong>Student ID</strong><p>{viewStudent.studentId}</p></div>
+                <div><strong>Class</strong><p><span className="class-pill" style={{background:classColors[viewStudent.className]||"#aaa"}}>{viewStudent.className || "—"}</span></p></div>
                 <div><strong>Date of Birth</strong><p>{viewStudent.dateOfBirth ? new Date(viewStudent.dateOfBirth).toLocaleDateString("en-LK") : "—"}</p></div>
                 <div><strong>Enrolled</strong><p>{viewStudent.enrolledDate ? new Date(viewStudent.enrolledDate).toLocaleDateString("en-LK") : "—"}</p></div>
                 <div><strong>Status</strong><p><span className={`status-pill ${viewStudent.status === "Active" ? "active" : "inactive"}`}>{viewStudent.status}</span></p></div>
@@ -208,6 +243,8 @@ const StudentManagement = () => {
         .search-row{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
         .search-input{flex:1;min-width:200px;padding:12px 18px;border-radius:12px;border:2px solid #eee;font-size:15px;outline:none;transition:border 0.2s;background:white;}
         .search-input:focus{border-color:#ff4fa3;}
+        .class-filter{padding:12px 16px;border-radius:12px;border:2px solid #eee;font-size:14px;outline:none;background:white;cursor:pointer;}
+        .class-filter:focus{border-color:#ff4fa3;}
         .count-badge{padding:8px 18px;background:white;border-radius:20px;font-weight:600;color:#555;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
         .table-wrap{background:white;border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.08);overflow-x:auto;}
         .data-table{width:100%;border-collapse:collapse;} .data-table thead{background:linear-gradient(90deg,#4facfe,#ff7eb3);}
@@ -215,6 +252,7 @@ const StudentManagement = () => {
         .data-table td{padding:13px 16px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#444;}
         .data-table tr:last-child td{border-bottom:none;} .data-table tr:hover td{background:#fdf4f9;}
         .id-badge{background:#f0f4ff;color:#4facfe;padding:3px 10px;border-radius:8px;font-weight:700;font-size:12px;}
+        .class-pill{padding:3px 12px;border-radius:20px;color:white;font-size:12px;font-weight:700;}
         .status-pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
         .status-pill.active{background:#dcfce7;color:#16a34a;} .status-pill.inactive{background:#fee2e2;color:#dc2626;}
         .email-cell{font-size:13px;color:#555;} .no-email{color:#f59e0b;font-size:12px;font-weight:600;}

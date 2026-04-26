@@ -7,9 +7,11 @@ import { attendanceAPI, studentAPI } from "../../services/api";
 const today = new Date().toISOString().split("T")[0];
 
 const AttendanceManagement = () => {
-  const [students, setStudents]       = useState([]);
-  const [attendance, setAttendance]   = useState({});
+  const [students, setStudents]         = useState([]);
+  const [allStudents, setAllStudents]   = useState([]);
+  const [attendance, setAttendance]     = useState({});
   const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedClass, setSelectedClass] = useState("All");
   const [pastRecords, setPastRecords]   = useState([]);
   const [viewRecord, setViewRecord]     = useState(null);
   const [loading, setLoading]           = useState(false);
@@ -18,11 +20,25 @@ const AttendanceManagement = () => {
   const [error, setError]               = useState("");
 
   useEffect(() => { fetchStudents(); fetchPastRecords(); }, []);
-  useEffect(() => { loadAttendanceForDate(selectedDate); }, [selectedDate, students]);
+
+  // Filter displayed students by class
+  useEffect(() => {
+    if (selectedClass === "All") setStudents(allStudents);
+    else setStudents(allStudents.filter(s => s.className === selectedClass));
+  }, [selectedClass, allStudents]);
+
+  useEffect(() => { if (allStudents.length > 0) loadAttendanceForDate(selectedDate); }, [selectedDate, allStudents]);
 
   const fetchStudents = async () => {
-    try { setLoading(true); const data = await studentAPI.getAll(); setStudents(data);
-      const init = {}; data.forEach(s => { init[s._id] = "Present"; }); setAttendance(init);
+    try {
+      setLoading(true);
+      const data = await studentAPI.getAll();
+      setAllStudents(data);
+      setStudents(data);
+      // Default all to "Present"
+      const init = {};
+      data.forEach(s => { init[s._id] = "Present"; });
+      setAttendance(init);
     } catch (err) { setError("Could not load students: " + err.message); }
     finally { setLoading(false); }
   };
@@ -32,20 +48,31 @@ const AttendanceManagement = () => {
   };
 
   const loadAttendanceForDate = async (date) => {
-    if (students.length === 0) return;
+    if (allStudents.length === 0) return;
     try {
       const data = await attendanceAPI.getByDate(date);
-      const mapped = {}; students.forEach(s => { mapped[s._id] = "Present"; });
+      const mapped = {};
+      allStudents.forEach(s => { mapped[s._id] = "Present"; });
       data.records.forEach(r => { const sid = r.studentId?._id || r.studentId; mapped[sid] = r.status; });
       setAttendance(mapped);
-    } catch { const init = {}; students.forEach(s => { init[s._id] = "Present"; }); setAttendance(init); }
+    } catch {
+      const init = {};
+      allStudents.forEach(s => { init[s._id] = "Present"; });
+      setAttendance(init);
+    }
   };
 
-  const setAll = (status) => { const u = {}; students.forEach(s => { u[s._id] = status; }); setAttendance(u); };
+  const setAll = (status) => {
+    const u = {};
+    students.forEach(s => { u[s._id] = status; });
+    setAttendance(prev => ({ ...prev, ...u }));
+  };
 
   const handleSave = async () => {
-    try { setSaving(true); setError("");
-      const records = students.map(s => ({ studentId: s._id, status: attendance[s._id] || "Present" }));
+    try {
+      setSaving(true); setError("");
+      // Save all students (not just filtered)
+      const records = allStudents.map(s => ({ studentId: s._id, status: attendance[s._id] || "Present" }));
       await attendanceAPI.save(selectedDate, records);
       setSaved(true); setTimeout(() => setSaved(false), 3000); fetchPastRecords();
     } catch (err) { setError("Failed to save: " + err.message); }
@@ -59,6 +86,9 @@ const AttendanceManagement = () => {
   };
 
   const countByStatus = (status) => Object.values(attendance).filter(v => v === status).length;
+  const visiblePresent = students.filter(s => attendance[s._id] === "Present").length;
+  const visibleAbsent  = students.filter(s => attendance[s._id] === "Absent").length;
+  const visibleLate    = students.filter(s => attendance[s._id] === "Late").length;
 
   return (
     <div className="admin-page">
@@ -76,40 +106,54 @@ const AttendanceManagement = () => {
         {error && <div className="banner error-banner">❌ {error}</div>}
         {saved && <div className="banner success-banner">✅ Attendance saved for {selectedDate}!</div>}
 
+        {/* Class selector */}
+        <div className="class-select-row no-print">
+          <span style={{fontWeight:600,color:"#555"}}>Filter by Class:</span>
+          {["All","Class A","Class B","Class C"].map(cls => (
+            <button key={cls}
+              className={`class-tab ${selectedClass === cls ? "active" : ""}`}
+              onClick={() => setSelectedClass(cls)}>
+              {cls}
+            </button>
+          ))}
+        </div>
+
         {loading ? <div className="loading-box">⏳ Loading students...</div> : (
           <>
             <div className="att-summary">
-              <div className="sum-card green"><span className="sum-num">{countByStatus("Present")}</span><span>Present</span></div>
-              <div className="sum-card red"><span className="sum-num">{countByStatus("Absent")}</span><span>Absent</span></div>
-              <div className="sum-card amber"><span className="sum-num">{countByStatus("Late")}</span><span>Late</span></div>
-              <div className="sum-card blue"><span className="sum-num">{students.length}</span><span>Total</span></div>
+              <div className="sum-card green"><span className="sum-num">{visiblePresent}</span><span>Present</span></div>
+              <div className="sum-card red"><span className="sum-num">{visibleAbsent}</span><span>Absent</span></div>
+              <div className="sum-card amber"><span className="sum-num">{visibleLate}</span><span>Late</span></div>
+              <div className="sum-card blue"><span className="sum-num">{students.length}</span><span>Showing</span></div>
+              <div className="sum-card purple"><span className="sum-num">{allStudents.length}</span><span>Total</span></div>
             </div>
 
             <div className="bulk-row no-print">
-              <span style={{fontWeight:600,color:"#555"}}>Mark All:</span>
+              <span style={{fontWeight:600,color:"#555"}}>Mark All ({selectedClass}):</span>
               <button className="bulk-btn green" onClick={() => setAll("Present")}>✅ Present</button>
               <button className="bulk-btn red"   onClick={() => setAll("Absent")}>❌ Absent</button>
               <button className="bulk-btn amber" onClick={() => setAll("Late")}>⏰ Late</button>
             </div>
 
-            {/* ── PRINT AREA ── */}
             <div id="print-area">
               <p style={{marginBottom:12,color:"#888",fontSize:13}}>
                 Date: <strong>{selectedDate}</strong> &nbsp;|&nbsp;
-                Present: <strong style={{color:"#16a34a"}}>{countByStatus("Present")}</strong> &nbsp;|&nbsp;
-                Absent: <strong style={{color:"#dc2626"}}>{countByStatus("Absent")}</strong> &nbsp;|&nbsp;
-                Late: <strong style={{color:"#b45309"}}>{countByStatus("Late")}</strong>
+                Class: <strong>{selectedClass}</strong> &nbsp;|&nbsp;
+                Present: <strong style={{color:"#16a34a"}}>{visiblePresent}</strong> &nbsp;|&nbsp;
+                Absent: <strong style={{color:"#dc2626"}}>{visibleAbsent}</strong> &nbsp;|&nbsp;
+                Late: <strong style={{color:"#b45309"}}>{visibleLate}</strong>
               </p>
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th className="no-print">Quick Mark</th></tr></thead>
+                  <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th><th className="no-print">Quick Mark</th></tr></thead>
                   <tbody>
                     {students.length === 0 ? (
-                      <tr><td colSpan="4" className="no-data">No students. Add students first.</td></tr>
+                      <tr><td colSpan="5" className="no-data">No students in {selectedClass === "All" ? "any class" : selectedClass}.</td></tr>
                     ) : students.map(s => (
                       <tr key={s._id}>
                         <td><span className="id-badge">{s.studentId}</span></td>
                         <td><strong>{s.name}</strong></td>
+                        <td><span className="class-badge" style={{background: s.className==="Class A"?"#4facfe":s.className==="Class B"?"#a78bfa":"#34d399"}}>{s.className || "—"}</span></td>
                         <td><span className={`status-pill ${attendance[s._id]==="Present"?"active":attendance[s._id]==="Late"?"late":"inactive"}`}>{attendance[s._id]||"Present"}</span></td>
                         <td className="no-print">
                           <div className="att-btn-row">
@@ -161,12 +205,13 @@ const AttendanceManagement = () => {
                 <button className="btn-del" onClick={() => handleDelete(viewRecord._id)}>🗑 Delete</button>
               </div>
               <table className="data-table">
-                <thead><tr><th>Student ID</th><th>Name</th><th>Status</th></tr></thead>
+                <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
                 <tbody>
                   {viewRecord.records.map((r,i) => (
                     <tr key={i}>
                       <td><span className="id-badge">{r.studentId?.studentId||"—"}</span></td>
                       <td>{r.studentId?.name||"—"}</td>
+                      <td>{r.studentId?.className || "—"}</td>
                       <td><span className={`status-pill ${r.status==="Present"?"active":r.status==="Late"?"late":"inactive"}`}>{r.status}</span></td>
                     </tr>
                   ))}
@@ -187,9 +232,12 @@ const AttendanceManagement = () => {
         .banner{padding:14px 20px;border-radius:12px;margin-bottom:20px;font-weight:600;font-size:15px;}
         .success-banner{background:#dcfce7;border:1px solid #86efac;color:#15803d;} .error-banner{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;}
         .loading-box{text-align:center;padding:60px;color:#888;font-size:18px;background:white;border-radius:16px;}
+        .class-select-row{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap;}
+        .class-tab{padding:8px 20px;border-radius:20px;border:2px solid #eee;background:white;color:#666;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;}
+        .class-tab.active{background:linear-gradient(90deg,#4facfe,#ff7eb3);border-color:transparent;color:white;}
         .att-summary{display:flex;gap:18px;margin-bottom:24px;flex-wrap:wrap;}
-        .sum-card{background:white;border-radius:14px;padding:20px 28px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);flex:1;min-width:110px;font-size:14px;font-weight:600;color:#666;}
-        .sum-card.green{border-top:4px solid #34d399;} .sum-card.red{border-top:4px solid #f87171;} .sum-card.amber{border-top:4px solid #f59e0b;} .sum-card.blue{border-top:4px solid #4facfe;}
+        .sum-card{background:white;border-radius:14px;padding:20px 28px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);flex:1;min-width:100px;font-size:14px;font-weight:600;color:#666;}
+        .sum-card.green{border-top:4px solid #34d399;} .sum-card.red{border-top:4px solid #f87171;} .sum-card.amber{border-top:4px solid #f59e0b;} .sum-card.blue{border-top:4px solid #4facfe;} .sum-card.purple{border-top:4px solid #a78bfa;}
         .sum-num{font-size:32px;font-weight:800;color:#333;}
         .bulk-row{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
         .bulk-btn{padding:8px 18px;border-radius:20px;border:none;font-weight:600;font-size:13px;cursor:pointer;transition:transform 0.15s;}
@@ -200,6 +248,7 @@ const AttendanceManagement = () => {
         .data-table td{padding:13px 16px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#444;}
         .data-table tr:last-child td{border-bottom:none;} .data-table tr:hover td{background:#fdf4f9;}
         .id-badge{background:#f0f4ff;color:#4facfe;padding:3px 10px;border-radius:8px;font-weight:700;font-size:12px;}
+        .class-badge{padding:3px 10px;border-radius:20px;color:white;font-size:11px;font-weight:700;}
         .status-pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
         .status-pill.active{background:#dcfce7;color:#16a34a;} .status-pill.inactive{background:#fee2e2;color:#dc2626;} .status-pill.late{background:#fef9c3;color:#854d0e;}
         .att-btn-row{display:flex;gap:8px;flex-wrap:wrap;}
