@@ -29,7 +29,7 @@ const TeacherDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [classSummary, setClassSummary] = useState({ "Class A": 0, "Class B": 0, "Class C": 0 });
 
-  useEffect(() => { loadDashboardData(); }, []);
+  useEffect(() => { loadDashboardData(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const getRelativeTime = (dateStr) => {
     if (!dateStr) return "Recently";

@@ -27,7 +27,7 @@ const TeacherAttendance = () => {
     else setStudents(allStudents.filter(s => s.className === selectedClass));
   }, [selectedClass, allStudents]);
 
-  useEffect(() => { if (allStudents.length > 0) loadAttendanceForDate(selectedDate); }, [selectedDate, allStudents]);
+  useEffect(() => { if (allStudents.length > 0) loadAttendanceForDate(selectedDate); }, [selectedDate, allStudents]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchStudents = async () => {
     try {
@@ -85,7 +85,6 @@ const TeacherAttendance = () => {
     catch (err) { setError("Delete failed: " + err.message); }
   };
 
-  const countByStatus = (status) => Object.values(attendance).filter(v => v === status).length;
   const visiblePresent = students.filter(s => attendance[s._id] === "Present").length;
   const visibleAbsent  = students.filter(s => attendance[s._id] === "Absent").length;
   const visibleLate    = students.filter(s => attendance[s._id] === "Late").length;

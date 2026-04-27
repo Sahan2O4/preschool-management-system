@@ -15,7 +15,7 @@ const AboutUs = () => {
       setCurrentSlide((prev) => (prev + 1) % slideshowImages.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="about-page">

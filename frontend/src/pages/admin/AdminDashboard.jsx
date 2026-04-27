@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   ]);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  useEffect(() => { loadDashboardData(); }, []);
+  useEffect(() => { loadDashboardData(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadDashboardData = async () => {
     setLoading(true);

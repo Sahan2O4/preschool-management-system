@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
   // ── Register: calls real backend ───────────────────────────────────────
   const register = async (formData) => {
     try {
-      const data = await authAPI.register(formData);
+      await authAPI.register(formData);
       return { success: true };
     } catch (err) {
       return { success: false, message: err.message };

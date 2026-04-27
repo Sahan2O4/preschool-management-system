@@ -3,8 +3,6 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { authAPI } from "../../services/api";
 
-const today = new Date().toISOString().split("T")[0];
-
 const blank = { name: "", email: "", phone: "", password: "", confirmPassword: "" };
 
 const TeacherManagement = () => {
