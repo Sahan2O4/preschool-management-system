@@ -16,7 +16,7 @@ Merry Kids International Montessori School
 - Feedback & Inquiries: H.M.K Nimsara
 - Interactive Sessions: V. Akshethaa
 - User Management: M.G.R Dulansa
-- Event Handling: D.P.O Jayasundara
+- Event Management: D.P.O Jayasundara
 - Financial Management: N.R Silva
 
 ## Repository Rules
