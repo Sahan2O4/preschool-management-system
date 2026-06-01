@@ -38,9 +38,17 @@ router.post("/", async (req, res) => {
 // ── PUT respond to feedback (admin only) ───────────────────────────────────
 router.put("/:id", protect, staffOnly, async (req, res) => {
   try {
+    const updates = {};
+    if (Object.prototype.hasOwnProperty.call(req.body, "response")) updates.response = req.body.response;
+    if (Object.prototype.hasOwnProperty.call(req.body, "status")) updates.status = req.body.status;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Only response and status can be updated" });
+    }
+
     const fb = await Feedback.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updates,
       { new: true, runValidators: true }
     );
     if (!fb) return res.status(404).json({ message: "Feedback not found" });

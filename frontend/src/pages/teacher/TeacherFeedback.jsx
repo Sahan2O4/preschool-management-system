@@ -38,6 +38,7 @@ const TeacherFeedback = () => {
 
   const filtered = filter==="All" ? feedbacks : feedbacks.filter(f => f.status===filter);
   const pendingCount = feedbacks.filter(f => f.status==="Pending").length;
+  const respondedCount = feedbacks.filter(f => f.status==="Responded").length;
 
   return (
     <div className="admin-page">
@@ -46,7 +47,16 @@ const TeacherFeedback = () => {
         <div className="page-header">
           <div><h1>💬 Feedback & Inquiries</h1><p>Review and respond to all parent messages</p></div>
           <div className="header-btns">
-            <PrintButton printAreaId="print-area" title="Feedback & Inquiries Report" />
+            <PrintButton
+              printAreaId="print-area"
+              title="Feedback & Inquiries Report"
+              metaLines={[
+                `Current filter: ${filter}`,
+                `Visible records: ${filtered.length}`,
+                `Pending: ${pendingCount}`,
+                `Responded: ${respondedCount}`,
+              ]}
+            />
             {pendingCount>0 && <div className="pending-badge">⚠️ {pendingCount} pending</div>}
           </div>
         </div>

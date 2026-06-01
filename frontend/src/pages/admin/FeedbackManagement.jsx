@@ -5,11 +5,15 @@ import PrintButton from "../../components/PrintButton";
 import { feedbackAPI } from "../../services/api";
 
 const typeColors = { "General Inquiry":"#4facfe","Feedback":"#34d399","Admission Inquiry":"#a78bfa","Complaint":"#f87171","Suggestion":"#f59e0b" };
+const blankResponse = { response:"" };
 
 const FeedbackManagement = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [filter, setFilter]       = useState("All");
   const [viewItem, setViewItem]   = useState(null);
+  const [editId, setEditId]       = useState(null);
+  const [editItem, setEditItem]   = useState(null);
+  const [editForm, setEditForm]   = useState(blankResponse);
   const [replyText, setReplyText] = useState("");
   const [deleteId, setDeleteId]   = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -20,6 +24,40 @@ const FeedbackManagement = () => {
   useEffect(() => { fetchFeedbacks(); }, []);
   const fetchFeedbacks = async () => { try { setLoading(true); const d = await feedbackAPI.getAll(); setFeedbacks(d); } catch { setError("Could not load feedback."); } finally { setLoading(false); } };
   const flash = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(""), 3000); };
+
+  const closeEdit = () => {
+    setEditId(null);
+    setEditItem(null);
+    setEditForm(blankResponse);
+  };
+
+  const handleEdit = (fb) => {
+    setEditId(fb._id);
+    setEditItem(fb);
+    setEditForm({ response: fb.response || "" });
+    setViewItem(null);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    try {
+      const response = editForm.response.trim();
+      const updated = await feedbackAPI.update(editId, {
+        response,
+        status: response ? "Responded" : "Pending",
+      });
+      setFeedbacks(prev => prev.map(f => f._id===editId ? updated : f));
+      if (viewItem?._id === editId) setViewItem(updated);
+      closeEdit();
+      flash("✅ Response updated.");
+    } catch (err) {
+      setError("Update failed: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleRespond = async (id) => {
     if (!replyText.trim()) return; setSaving(true);
@@ -38,6 +76,7 @@ const FeedbackManagement = () => {
 
   const filtered = filter==="All" ? feedbacks : feedbacks.filter(f => f.status===filter);
   const pendingCount = feedbacks.filter(f => f.status==="Pending").length;
+  const respondedCount = feedbacks.filter(f => f.status==="Responded").length;
 
   return (
     <div className="admin-page">
@@ -46,7 +85,16 @@ const FeedbackManagement = () => {
         <div className="page-header">
           <div><h1>💬 Feedback & Inquiries</h1><p>Review and respond to all parent messages</p></div>
           <div className="header-btns">
-            <PrintButton printAreaId="print-area" title="Feedback & Inquiries Report" />
+            <PrintButton
+              printAreaId="print-area"
+              title="Feedback & Inquiries Report"
+              metaLines={[
+                `Current filter: ${filter}`,
+                `Visible records: ${filtered.length}`,
+                `Pending: ${pendingCount}`,
+                `Responded: ${respondedCount}`,
+              ]}
+            />
             {pendingCount>0 && <div className="pending-badge">⚠️ {pendingCount} pending</div>}
           </div>
         </div>
@@ -81,6 +129,7 @@ const FeedbackManagement = () => {
                       <td className="no-print">
                         <div className="action-row">
                           <button className="btn-view" onClick={() => { setViewItem(fb); setReplyText(fb.response||""); }}>Reply</button>
+                          <button className="btn-edit" onClick={() => handleEdit(fb)}>Edit Response</button>
                           <button className="btn-del"  onClick={() => setDeleteId(fb._id)}>Delete</button>
                         </div>
                       </td>
@@ -110,9 +159,35 @@ const FeedbackManagement = () => {
                 </div>
               )}
               <div className="modal-actions" style={{marginTop:20}}>
+                <button className="btn-edit" onClick={() => handleEdit(viewItem)}>Edit Response</button>
                 <button className="btn-del" onClick={() => setDeleteId(viewItem._id)}>Delete</button>
                 <button className="cancel-btn" onClick={() => setViewItem(null)}>Close</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {editId && (
+          <div className="modal-overlay" onClick={closeEdit}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={closeEdit}>×</button>
+              <h2>Edit Response</h2>
+              {editItem && (
+                <div className="msg-box-display">
+                  <strong>Original Message</strong>
+                  <p>{editItem.message}</p>
+                </div>
+              )}
+              <form className="grid-form" onSubmit={handleUpdate}>
+                <div className="form-group full">
+                  <label>Response</label>
+                  <textarea rows="5" value={editForm.response} onChange={e => setEditForm({...editForm, response:e.target.value})} placeholder="Type or update the school's response..." />
+                </div>
+                <div className="form-actions full">
+                  <button type="submit" className="submit-btn" disabled={saving}>{saving?"Updating...":"Update Response"}</button>
+                  <button type="button" className="cancel-btn" onClick={closeEdit}>Cancel</button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -152,6 +227,7 @@ const FeedbackManagement = () => {
         .status-pill.active{background:#dcfce7;color:#16a34a;} .status-pill.inactive{background:#fff7ed;color:#b45309;}
         .action-row{display:flex;gap:8px;}
         .btn-view{padding:6px 12px;border-radius:20px;border:2px solid #4facfe;background:white;color:#4facfe;font-size:12px;font-weight:600;cursor:pointer;}
+        .btn-edit{padding:6px 12px;border-radius:20px;border:2px solid #ff7eb3;background:white;color:#ff4fa3;font-size:12px;font-weight:600;cursor:pointer;}
         .btn-del{padding:6px 12px;border-radius:20px;border:2px solid #f87171;background:white;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;}
         .no-data{text-align:center;padding:40px;color:#aaa;font-size:16px;}
         .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -168,11 +244,17 @@ const FeedbackManagement = () => {
         .reply-area label{font-weight:600;font-size:14px;color:#444;}
         .reply-area textarea{padding:14px;border-radius:12px;border:2px solid #eee;font-size:14px;outline:none;transition:border 0.2s;font-family:"Segoe UI",sans-serif;resize:vertical;}
         .reply-area textarea:focus{border-color:#ff4fa3;}
+        .grid-form{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+        .form-group{display:flex;flex-direction:column;gap:6px;} .form-group.full{grid-column:1/-1;}
+        .form-group label{font-weight:600;font-size:13px;color:#555;}
+        .form-group input,.form-group select,.form-group textarea{padding:11px 14px;border-radius:10px;border:2px solid #eee;font-size:14px;outline:none;transition:border 0.2s;font-family:"Segoe UI",sans-serif;resize:vertical;}
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#ff4fa3;}
+        .form-actions{display:flex;gap:14px;}
         .submit-btn{padding:12px 28px;border-radius:25px;border:none;background:linear-gradient(90deg,#4facfe,#ff7eb3);color:white;font-weight:700;cursor:pointer;font-size:14px;transition:transform 0.2s;}
         .submit-btn:hover:not(:disabled){transform:translateY(-2px);} .submit-btn:disabled{opacity:0.7;cursor:not-allowed;}
         .cancel-btn{padding:12px 28px;border-radius:25px;border:2px solid #ddd;background:white;color:#666;font-weight:600;cursor:pointer;font-size:14px;}
         .modal-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
-        @media(max-width:768px){.admin-body{padding:20px;}}
+        @media(max-width:768px){.admin-body{padding:20px;}.grid-form{grid-template-columns:1fr;}.form-group.full{grid-column:1;}}
       `}</style>
     </div>
   );
